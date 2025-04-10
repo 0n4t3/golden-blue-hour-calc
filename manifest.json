@@ -1,6 +1,6 @@
 {
   "name": "Golden & Blue Hour",
-  "short_name": "SunCal",
+  "short_name": "SunCalculator",
   "description": "Calculates Golden Hour and Blue Hour",
   "start_url": ".",
   "scope": ".",
