@@ -1,0 +1,24 @@
+{
+  "name": "Golden & Blue Hour",
+  "short_name": "SunCal",
+  "description": "Calculates Golden Hour and Blue Hour",
+  "start_url": ".",
+  "scope": ".",
+  "display": "minimal-ui",
+  "background_color": "#e0f2fe",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

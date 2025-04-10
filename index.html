@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden & Blue Hour Calculator</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/suncalc@1.8.0/suncalc.min.js"></script>
+    <style>
+      @font-face {
+        font-family: 'LucideIcons';
+        src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf) format('truetype');
+      }
+      .lucide {
+        font-family: 'LucideIcons';
+        font-style: normal;
+        font-weight: normal;
+        font-variant: normal;
+        text-transform: none;
+        speak: none;
+
+        /* Better Font Rendering */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      body, h1, h2, h3, p, button {
+        /* Better Font Rendering */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      /* Basic body styling */
+      body {
+        font-family: 'Inter', sans-serif; /* Use Inter font */
+      }
+      /* Add custom styles for loading spinner */
+      .loader {
+        border: 4px solid #f3f3f3; /* Light grey */
+        border-top: 4px solid #3b82f6; /* Blue */
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto; /* Center spinner */
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    <link rel="preconnect" href="https://webfonts.fontsquirrel.com">
+    <link href="https://webfonts.fontsquirrel.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Golden & Blue Hour</h1>
+
+        <button id="getLocationBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-5 rounded-lg shadow transition duration-150 ease-in-out inline-flex items-center justify-center space-x-2 mb-6">
+            <span>Get Times for My Location</span>
+        </button>
+
+        <div id="loading" class="hidden my-4">
+           <div class="loader"></div>
+           <p class="text-sm text-gray-500 mt-2">Getting location and calculating...</p>
+        </div>
+
+        <div id="results" class="hidden text-left space-y-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-700 mb-1">Location:</h2>
+                <p id="locationInfo" class="text-gray-600"></p>
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-700 mb-2">Today's Times:</h2>
+                <div class="space-y-3">
+                    <div class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                        <h3 class="font-medium text-yellow-800 mb-1">Morning Golden Hour:</h3>
+                        <p id="morningGoldenHour" class="text-yellow-700"></p>
+                        <h3 class="font-medium text-blue-800 mt-2 mb-1">Morning Blue Hour:</h3>
+                         <p id="morningBlueHour" class="text-blue-700"></p>
+                    </div>
+                    <div class="bg-orange-50 border border-orange-200 p-3 rounded-lg">
+                        <h3 class="font-medium text-orange-800 mb-1">Evening Golden Hour:</h3>
+                        <p id="eveningGoldenHour" class="text-orange-700"></p>
+                         <h3 class="font-medium text-indigo-800 mt-2 mb-1">Evening Blue Hour:</h3>
+                         <p id="eveningBlueHour" class="text-indigo-700"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="hidden mt-4 bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-left">
+            <p id="errorMessage"></p>
+        </div>
+
+        <p class="text-xs text-gray-400 mt-6">This is a static site, your location never leaves your browser and all calculations are local. Install as a PWA for offline functionality.</p>
+        <div class="absolute bottom-4 right-4">
+            <a href="https://github.com/0n4t3/golden-blue-hour-calc" target="_blank" rel="noopener noreferrer">
+                <img src="/git.png" alt="GitHub" class="h-8 w-8"></a>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        const resultsDiv = document.getElementById('results');
+        const locationInfoP = document.getElementById('locationInfo');
+        const morningGoldenHourP = document.getElementById('morningGoldenHour');
+        const eveningGoldenHourP = document.getElementById('eveningGoldenHour');
+        const morningBlueHourP = document.getElementById('morningBlueHour');
+        const eveningBlueHourP = document.getElementById('eveningBlueHour');
+        const errorDiv = document.getElementById('error');
+        const errorMessageP = document.getElementById('errorMessage');
+        const loadingDiv = document.getElementById('loading');
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.error('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // --- Event Listener ---
+        getLocationBtn.addEventListener('click', () => {
+            // Reset UI
+            resultsDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden'); // Show loading indicator
+            getLocationBtn.disabled = true; // Disable button during processing
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(handleLocationSuccess, handleLocationError, {
+                    enableHighAccuracy: false, // Lower accuracy is usually sufficient and faster
+                    timeout: 10000, // 10 seconds timeout
+                    maximumAge: 600000 // Allow cached position up to 10 minutes old
+                });
+            } else {
+                showError("Geolocation is not supported by this browser.");
+                loadingDiv.classList.add('hidden');
+                 getLocationBtn.disabled = false;
+            }
+        });
+
+        // --- Geolocation Handlers ---
+        function handleLocationSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            locationInfoP.textContent = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+            calculateTimes(lat, lon);
+
+            // Hide loading and show results
+            loadingDiv.classList.add('hidden');
+            resultsDiv.classList.remove('hidden');
+            getLocationBtn.disabled = false; // Re-enable button
+        }
+
+        function handleLocationError(error) {
+            let message = "An unknown error occurred while getting location.";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "Location permission denied. Please allow location access in your browser settings.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    message = "The request to get user location timed out.";
+                    break;
+            }
+            showError(message);
+            loadingDiv.classList.add('hidden');
+            getLocationBtn.disabled = false; // Re-enable button
+        }
+
+        // --- Calculation Logic ---
+        function calculateTimes(lat, lon) {
+            const now = new Date();
+            const times = SunCalc.getTimes(now, lat, lon);
+
+            // --- Golden Hour Calculations ---
+            // Morning: From sunrise start until golden hour end.
+            // Evening: From golden hour start until sunset end.
+            const morningGoldenStart = times.sunrise;
+            const morningGoldenEnd = times.goldenHourEnd;
+            const eveningGoldenStart = times.goldenHour; // This is the start of the evening golden hour
+            const eveningGoldenEnd = times.sunset;
+
+            // --- Blue Hour Calculations (Approximation) ---
+            // Often considered the time during civil twilight when the sun is between -4 and -6 degrees.
+            // We'll approximate using the periods between nautical and civil twilight start/end provided by SunCalc.
+            // Morning: Approx. from nautical dawn (-12 deg) to dawn (-6 deg) or dawn (-6 deg) to sunrise (0 deg). Let's use dawn to sunrise.
+            // Evening: Approx. from sunset (0 deg) to dusk (-6 deg).
+            const morningBlueStart = times.dawn; // Start of civil twilight
+            const morningBlueEnd = times.sunrise; // End of civil twilight (approx end of blue hour)
+            const eveningBlueStart = times.sunset; // Start of evening blue hour (approx)
+            const eveningBlueEnd = times.dusk; // End of civil twilight
+
+            // --- Display Results ---
+            morningGoldenHourP.textContent = `${formatTime(morningGoldenStart)} - ${formatTime(morningGoldenEnd)}`;
+            eveningGoldenHourP.textContent = `${formatTime(eveningGoldenStart)} - ${formatTime(eveningGoldenEnd)}`;
+            morningBlueHourP.textContent = `${formatTime(morningBlueStart)} - ${formatTime(morningBlueEnd)}`;
+            eveningBlueHourP.textContent = `${formatTime(eveningBlueStart)} - ${formatTime(eveningBlueEnd)}`;
+        }
+
+        // --- Utility Functions ---
+        function formatTime(date) {
+            if (!date || isNaN(date.getTime())) {
+                return 'N/A'; // Handle cases where SunCalc might not return a valid date
+            }
+            // Format time to local HH:MM AM/PM format
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showError(message) {
+            errorMessageP.textContent = message;
+            errorDiv.classList.remove('hidden');
+            resultsDiv.classList.add('hidden'); // Hide results if error occurs
+        }
+
+    </script>
+</body>
+</html>
